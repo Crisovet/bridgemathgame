@@ -85,6 +85,7 @@ html.mob .rv-grid{grid-template-columns:repeat(var(--cols,1),minmax(0,1fr))}
 html.mob .rv-card{padding:10px}html.mob .rv-q,html.mob .rv-row,html.mob .rv-why{font-size:11px}
 html.rot body{overflow:hidden}
 html.rot #app{position:fixed;top:0;left:100%;width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:0 0;transform:rotate(90deg)}
+#confirmBox{display:none;flex:1;align-items:center;gap:8px}.confirm-q{flex:1.3;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#e8d29a;line-height:1.3}#confirmBox .btn{flex:1;padding:11px 8px}html.mob #confirmBox .btn{padding:8px}
 </style>
 </head>
 <body>
@@ -102,7 +103,7 @@ html.rot #app{position:fixed;top:0;left:100%;width:100vh;height:100vw;width:100d
 <div id="ending"><div class="end-card"><div class="sig">Expedition report</div><h2 id="endTitle">The Road Remembers</h2><p id="endText"></p><div id="review"></div><a id="leaderboardBtn" href="ranking.html">View Leaderboard</a></div></div>
 </section>
 <aside id="sidebar">
-<section class="section"><div class="eyebrow" id="turnLabel">Turn 01 · Span I</div><h2 id="questionTitle">A trial in the dark</h2><p id="question">Begin the expedition to receive today's first challenge.</p><div id="qDiagram"></div><div class="answers" id="answers"></div><div class="actions"><button class="btn" id="lockBtn" disabled>Lock answer</button></div><div class="feedback" id="feedback">One answer per turn. Correct answers lower the next drawbridge.</div></section>
+<section class="section"><div class="eyebrow" id="turnLabel">Turn 01 · Span I</div><h2 id="questionTitle">A trial in the dark</h2><p id="question">Begin the expedition to receive today's first challenge.</p><div id="qDiagram"></div><div class="answers" id="answers"></div><div class="actions"><button class="btn" id="lockBtn" disabled>Lock answer</button><div id="confirmBox"><span class="confirm-q">Are you sure?</span><button class="btn" id="yesBtn">Yes</button><button class="btn secondary" id="noBtn">No</button></div></div><div class="feedback" id="feedback">One answer per turn. Correct answers lower the next drawbridge.</div></section>
 <section class="section"><div class="eyebrow">Expedition journal</div><h2>Broken spans</h2>
 <div class="quest-row"><div class="rune" id="rune0">I</div><div><b>The Rootbound Span</b><small id="quest0">Drawbridge raised</small></div><div class="status" id="status0">Broken</div></div>
 <div class="quest-row"><div class="rune" id="rune1">II</div><div><b>The King's Causeway</b><small id="quest1">Drawbridge raised</small></div><div class="status" id="status1">Broken</div></div>
@@ -308,12 +309,11 @@ function renderQuestion(){
   const q=questions[turn],multi=Array.isArray(q.c);
   $('qDiagram').innerHTML=q.diagram||'';
   $('turnLabel').textContent=`Turn ${String(turn+1).padStart(2,'0')} · Span ${roman[turn]}`;$('questionTitle').textContent=['The Rootbound Trial',"The King's Arithmetic",'The Moonveil Test'][turn];$('question').textContent=q.q;
-  const host=$('answers');host.innerHTML='';q.a.forEach((a,i)=>{const b=document.createElement('button');b.className='answer';b.innerHTML=`<span class="key">${String.fromCharCode(65+i)}</span><span>${a}</span>`;b.addEventListener('click',()=>{if(locked||!started||state==='walking')return;if(multi){selected=selected.includes(i)?selected.filter(v=>v!==i):[...selected,i]}else{selected=[i]}[...host.children].forEach((el,j)=>el.classList.toggle('chosen',selected.includes(j)));$('lockBtn').disabled=selected.length===0});host.appendChild(b)});
-  $('lockBtn').disabled=true;$('feedback').className='feedback';$('feedback').textContent=multi?'Select all correct options, then lock your answer.':'Choose one answer, then lock it. A wrong answer leaves this gap open.';updateUI()
+  const host=$('answers');host.innerHTML='';q.a.forEach((a,i)=>{const b=document.createElement('button');b.className='answer';b.innerHTML=`<span class="key">${String.fromCharCode(65+i)}</span><span>${a}</span>`;b.addEventListener('click',()=>{if(locked||!started||state==='walking')return;hideConfirm();if(multi){selected=selected.includes(i)?selected.filter(v=>v!==i):[...selected,i]}else{selected=[i]}[...host.children].forEach((el,j)=>el.classList.toggle('chosen',selected.includes(j)));$('lockBtn').disabled=selected.length===0});host.appendChild(b)});
+  hideConfirm();$('lockBtn').disabled=true;$('feedback').className='feedback';$('feedback').textContent=multi?'Choose correct option or options, then lock it.':'Choose correct option or options, then lock.';updateUI()
 }
 function resolve(){
  if(selected.length===0||locked||!started||finished||state==='walking')return;
- if(!confirm('Lock in this answer? You cannot change it afterwards.'))return;
  locked=true;$('lockBtn').disabled=true;const q=questions[turn],correctIndices=Array.isArray(q.c)?q.c:[q.c],correct=selected.length===correctIndices.length&&selected.every(i=>correctIndices.includes(i));outcomes[turn]=correct;picked[turn]=[...selected];
  [...$('answers').children].forEach((el,i)=>{el.disabled=true;if(correctIndices.includes(i))el.classList.add('good');if(selected.includes(i)&&!correctIndices.includes(i))el.classList.add('bad')});
  if(correct){
@@ -364,7 +364,9 @@ function renderReview(){
 }
 function finish(){finished=true;locked=true;state='idle';$('turnLabel').textContent='Expedition complete';$('questionTitle').textContent='The road remembers';$('question').textContent='All three daily trials have been resolved.';$('answers').innerHTML='';$('lockBtn').disabled=true;let n=opened.filter(Boolean).length;submitResult(n,3);$('feedback').className=n===3?'feedback good':'feedback';$('feedback').textContent=`${n} of 3 bridge sections connected. ${n===3?'Every gap is bridged; the party has reached the far road.':n===0?'The gaps remain. Return tomorrow for a new set of trials.':'Only correct answers joined their matching bridge sections.'}`;$('endTitle').textContent=n===3?'The road is yours':n===0?'The ford stands firm':'A journey remembered';$('endText').textContent=`${heroName}, you solved ${n} of today's three trials and connected ${n} bridge${n===1?'':' sections'}. Wrong answers never create a bridge. New questions rotate with the date.`;renderReview();document.documentElement.classList.add('done');$('ending').style.display='flex';if(typeof applyMode==='function')applyMode();log(`Expedition complete: ${n}/3 spans connected.`);updateUI()}
 function start(){heroName=$('nameInput').value.trim();studentClass=$('classInput').value.trim();studentPhone=$('phoneInput').value.trim();if(!heroName||!studentClass||!studentPhone){toast('ENTER NAME, CLASS AND PHONE');return}const music=$('backgroundMusic');lockLandscape();music.volume=0.25;music.play().catch(()=>{});started=true;$('intro').style.display='none';log(`${heroName} approaches the riverbank.`);renderQuestion()}
-$('startBtn').addEventListener('click',start);$('lockBtn').addEventListener('click',resolve);
+$('startBtn').addEventListener('click',start);$('lockBtn').addEventListener('click',askConfirm);$('yesBtn').addEventListener('click',()=>{hideConfirm();resolve()});$('noBtn').addEventListener('click',hideConfirm);
+function askConfirm(){if(selected.length===0||locked||!started||finished||state==='walking')return;$('lockBtn').style.display='none';$('confirmBox').style.display='flex'}
+function hideConfirm(){$('confirmBox').style.display='none';$('lockBtn').style.display=''}
 
 function isMobileDevice(){return (matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<=600)||/Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent)}
 function applyMode(){const h=document.documentElement,mob=isMobileDevice(),portrait=window.innerHeight>window.innerWidth;h.classList.toggle('mob',mob);h.classList.toggle('rot',mob&&portrait);canvas.style.height='';resize()}
