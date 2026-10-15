@@ -61,6 +61,30 @@ h2{font:500 20px/1.35 Cinzel,serif;color:#efe2c3;margin:0 0 11px}#question{font-
 .log div{animation:slideIn .4s both}.portrait{animation:glow 3s infinite}@keyframes glow{50%{box-shadow:0 0 16px #d9bc7a55}}
 .progress span{box-shadow:0 0 10px #74b77c88}
 #qDiagram:empty{display:none}#qDiagram{margin:0 0 13px;padding:8px;background:#0c110f;border:1px solid #4a5448}#qDiagram svg{display:block;width:100%;height:auto;max-width:300px;margin:auto}
+
+/* ---- Mobile landscape mode (native landscape, or CSS-rotated when phone is held upright) ---- */
+html.mob,html.mob body{height:100%;overflow:hidden}
+html.mob #app{height:100dvh;min-height:0;max-width:none;grid-template-rows:42px minmax(0,1fr)}
+html.mob header{padding:0 12px;flex-direction:row;align-items:center;gap:10px}
+html.mob .brand{font-size:13px;letter-spacing:1.5px}html.mob .brand small{display:none}
+html.mob .hud{width:auto;gap:14px}html.mob .hud div{font-size:8px}html.mob .hud b{font-size:10px;margin-top:2px}
+html.mob #main{grid-template-columns:minmax(0,1fr) minmax(250px,36%);grid-template-rows:minmax(0,1fr);min-height:0;overflow:hidden}
+html.mob #world{min-height:0}html.mob #gameCanvas{min-height:0}
+html.mob #sidebar{display:flex;flex-direction:column;border-left:1px solid var(--line);border-top:0;overflow-y:auto;min-height:0}
+html.mob .section:first-child{grid-row:auto}html.mob .section{padding:10px 12px}
+html.mob h2{font-size:15px;margin-bottom:6px}html.mob #question{font-size:12px;line-height:1.5;margin-bottom:8px}
+html.mob .answer{padding:6px 8px;font-size:12px}html.mob .answer .key{width:20px;height:20px;flex-basis:20px}
+html.mob .btn{padding:8px 10px}html.mob .feedback{font-size:11px;min-height:0;margin-top:7px}
+html.mob .scene-label{left:8px;top:8px;padding:6px 9px}html.mob .world-bottom{left:8px;bottom:8px}
+html.mob #intro,html.mob #ending{overflow-y:auto;align-items:flex-start;padding:10px}
+html.mob .intro-card,html.mob .end-card{margin:auto;padding:16px}
+html.mob .intro-card h1{font-size:24px;margin:6px 0}html.mob .intro-card p{font-size:12px;line-height:1.5;margin:6px 0}
+html.mob .intro-card input{padding:8px;margin:5px 0 2px}
+html.mob.done #main{grid-template-columns:minmax(0,1fr)}html.mob.done #sidebar{display:none}
+html.mob .rv-grid{grid-template-columns:repeat(var(--cols,1),minmax(0,1fr))}
+html.mob .rv-card{padding:10px}html.mob .rv-q,html.mob .rv-row,html.mob .rv-why{font-size:11px}
+html.rot body{overflow:hidden}
+html.rot #app{position:fixed;top:0;left:100%;width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:0 0;transform:rotate(90deg)}
 </style>
 </head>
 <body>
@@ -122,7 +146,7 @@ const ROAD_Y=340,BRIDGE_W=220,BRIDGE_H=34;
 const bridgeDefs=[{x:180,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H},{x:490,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H},{x:800,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H}];
 const HERO_START_X=110,HERO_Y=ROAD_Y+18,FINAL_X=1105;
 let W=1200,H=680,dpr=1,last=0,time=0,cameraX=0,shake=0,particles=[],bridgeAnim=[0,0,0],partyX=HERO_START_X,partyTargetX=HERO_START_X,partyY=HERO_Y,partyTargetY=HERO_Y,walkPhase=0,pendingNext=false;
-function resize(){const r=$('world').getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.floor(r.width*dpr);canvas.height=Math.floor(r.height*dpr);canvas.style.height=r.height+'px';draw()}
+function resize(){const w=$('world'),r={width:w.clientWidth,height:w.clientHeight};dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.floor(r.width*dpr);canvas.height=Math.floor(r.height*dpr);canvas.style.height=r.height+'px';draw()}
 window.addEventListener('resize',resize);
 function rnd(a,b){return a+Math.random()*(b-a)}
 function roundRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
@@ -338,10 +362,16 @@ function renderReview(){
   grid.appendChild(box)});
  host.appendChild(grid);
 }
-function finish(){finished=true;locked=true;state='idle';$('turnLabel').textContent='Expedition complete';$('questionTitle').textContent='The road remembers';$('question').textContent='All three daily trials have been resolved.';$('answers').innerHTML='';$('lockBtn').disabled=true;let n=opened.filter(Boolean).length;submitResult(n,3);$('feedback').className=n===3?'feedback good':'feedback';$('feedback').textContent=`${n} of 3 bridge sections connected. ${n===3?'Every gap is bridged; the party has reached the far road.':n===0?'The gaps remain. Return tomorrow for a new set of trials.':'Only correct answers joined their matching bridge sections.'}`;$('endTitle').textContent=n===3?'The road is yours':n===0?'The ford stands firm':'A journey remembered';$('endText').textContent=`${heroName}, you solved ${n} of today's three trials and connected ${n} bridge${n===1?'':' sections'}. Wrong answers never create a bridge. New questions rotate with the date.`;renderReview();$('ending').style.display='flex';log(`Expedition complete: ${n}/3 spans connected.`);updateUI()}
-function start(){heroName=$('nameInput').value.trim();studentClass=$('classInput').value.trim();studentPhone=$('phoneInput').value.trim();if(!heroName||!studentClass||!studentPhone){toast('ENTER NAME, CLASS AND PHONE');return}const music=$('backgroundMusic');music.volume=0.25;music.play().catch(()=>{});started=true;$('intro').style.display='none';log(`${heroName} approaches the riverbank.`);renderQuestion()}
+function finish(){finished=true;locked=true;state='idle';$('turnLabel').textContent='Expedition complete';$('questionTitle').textContent='The road remembers';$('question').textContent='All three daily trials have been resolved.';$('answers').innerHTML='';$('lockBtn').disabled=true;let n=opened.filter(Boolean).length;submitResult(n,3);$('feedback').className=n===3?'feedback good':'feedback';$('feedback').textContent=`${n} of 3 bridge sections connected. ${n===3?'Every gap is bridged; the party has reached the far road.':n===0?'The gaps remain. Return tomorrow for a new set of trials.':'Only correct answers joined their matching bridge sections.'}`;$('endTitle').textContent=n===3?'The road is yours':n===0?'The ford stands firm':'A journey remembered';$('endText').textContent=`${heroName}, you solved ${n} of today's three trials and connected ${n} bridge${n===1?'':' sections'}. Wrong answers never create a bridge. New questions rotate with the date.`;renderReview();document.documentElement.classList.add('done');$('ending').style.display='flex';if(typeof applyMode==='function')applyMode();log(`Expedition complete: ${n}/3 spans connected.`);updateUI()}
+function start(){heroName=$('nameInput').value.trim();studentClass=$('classInput').value.trim();studentPhone=$('phoneInput').value.trim();if(!heroName||!studentClass||!studentPhone){toast('ENTER NAME, CLASS AND PHONE');return}const music=$('backgroundMusic');lockLandscape();music.volume=0.25;music.play().catch(()=>{});started=true;$('intro').style.display='none';log(`${heroName} approaches the riverbank.`);renderQuestion()}
 $('startBtn').addEventListener('click',start);$('lockBtn').addEventListener('click',resolve);
-buildTextures();resize();requestAnimationFrame(frame);
+
+function isMobileDevice(){return (matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<=600)||/Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent)}
+function applyMode(){const h=document.documentElement,mob=isMobileDevice(),portrait=window.innerHeight>window.innerWidth;h.classList.toggle('mob',mob);h.classList.toggle('rot',mob&&portrait);canvas.style.height='';resize()}
+function lockLandscape(){if(!isMobileDevice())return;const el=document.documentElement,lock=()=>screen.orientation&&screen.orientation.lock?screen.orientation.lock('landscape'):Promise.reject();
+ try{const p=el.requestFullscreen?el.requestFullscreen({navigationUI:'hide'}):Promise.reject();Promise.resolve(p).then(lock).then(()=>setTimeout(applyMode,300)).catch(()=>{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})})}catch(e){}}
+window.addEventListener('resize',applyMode);window.addEventListener('orientationchange',()=>setTimeout(applyMode,250));
+buildTextures();applyMode();requestAnimationFrame(frame);
 })();
 </script>
 </body></html>
