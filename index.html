@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Three Crossings — 2D Tactical RPG</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{--gold:#d9bc7a;--gold2:#8f713d;--ink:#090b0b;--panel:#101413;--line:#655538;--text:#e6e0d0;--muted:#9ba29a;--green:#a3e8ae;--red:#ee8981}
+*{box-sizing:border-box}body{margin:0;background:#070909;color:var(--text);font-family:Inter,Arial,sans-serif}
+button,input{font:inherit}button{cursor:pointer}
+#app{min-height:100vh;display:grid;grid-template-rows:66px 1fr;max-width:1700px;margin:auto;background:#0a0d0c}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 22px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#171b19,#0c100f)}
+.brand{font:600 19px Cinzel,serif;letter-spacing:2px;color:var(--gold)}.brand small{display:block;font:10px Inter,sans-serif;letter-spacing:2.2px;color:#969d91;margin-top:3px}
+.hud{display:flex;gap:22px}.hud div{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#9ba39a}.hud b{display:block;color:#e5d4a3;font-size:13px;margin-top:4px}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 360px;min-height:0}
+#world{position:relative;min-width:0;min-height:620px;background:#101714;overflow:hidden}
+#gameCanvas{width:100%;height:100%;display:block;min-height:620px}
+.scene-label{position:absolute;left:18px;top:16px;background:#080c0be0;border:1px solid #8f774a77;padding:10px 13px;pointer-events:none}
+.scene-label b{display:block;font:12px Cinzel,serif;letter-spacing:1.5px;color:#e7d5a5}.scene-label span{display:block;font-size:10px;letter-spacing:1px;color:#9aa79b;margin-top:5px;text-transform:uppercase}
+.toast{position:absolute;top:18px;left:50%;transform:translate(-50%,-8px);opacity:0;transition:.3s;padding:10px 16px;background:#13241a;border:1px solid #79ba83;color:#c4f2c7;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;white-space:nowrap;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+.world-bottom{position:absolute;bottom:16px;left:18px;display:flex;align-items:center;gap:9px;pointer-events:none}
+.portrait{width:42px;height:42px;display:grid;place-items:center;border:1px solid #a78d59;background:linear-gradient(135deg,#39433b,#111614);font:20px Cinzel;color:#e3c783}
+.party-label{background:#080c0be0;border:1px solid #ffffff20;padding:8px 12px}.party-label b{font:11px Cinzel;color:#e7d6a9;display:block}.party-label span{font-size:10px;color:#9ea89e}
+#sidebar{border-left:1px solid var(--line);background:linear-gradient(#151a17,#0b0f0e);display:flex;flex-direction:column}
+.section{padding:17px;border-bottom:1px solid #8c744126}.eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#9ba795;margin-bottom:9px}
+h2{font:500 20px/1.35 Cinzel,serif;color:#efe2c3;margin:0 0 11px}#question{font-size:14px;line-height:1.65;color:#d9d9ce;margin:0 0 13px}
+.answers{display:grid;gap:7px}.answer{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:9px 10px;color:#e6e4d8;background:#171d19;border:1px solid #4a5448;transition:.18s}
+.answer:hover:not(:disabled){border-color:#c5a767;background:#222b23;transform:translateX(2px)}.answer .key{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border:1px solid #87744d;color:#e4c983;font-size:11px}
+.answer.chosen{border-color:#e6ca82;background:#302b1e}.answer.good{border-color:#82c98a;background:#1c3221}.answer.bad{border-color:#c86e66;background:#351d1b}.answer:disabled{cursor:default}
+.actions{display:flex;gap:8px;margin-top:12px}.btn{flex:1;padding:11px 12px;border:1px solid #c6a761;background:linear-gradient(#80663a,#4d3d24);color:#fff0c6;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.secondary{background:#1a211b;border-color:#53604f;color:#cbd0c3}
+.feedback{font-size:12px;line-height:1.55;color:#aeb8aa;min-height:39px;margin-top:11px}.feedback.good{color:var(--green)}.feedback.bad{color:var(--red)}
+.quest-row{display:grid;grid-template-columns:25px 1fr auto;align-items:center;gap:9px;margin:12px 0}.rune{width:25px;height:25px;display:grid;place-items:center;border:1px solid #586052;color:#aab2a4;font-size:11px}.rune.open{background:#1b3823;border-color:#83ce8a;color:#bcf4bc;box-shadow:0 0 13px #67b86e33}.quest-row b{font:11px Cinzel;color:#ded7c6;display:block}.quest-row small{font-size:10px;color:#879287;display:block;margin-top:4px}.status{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#9da599}.status.open{color:#a0e4a8}
+.progress{height:4px;background:#293027;margin:15px 0 7px}.progress span{display:block;width:0;height:100%;background:linear-gradient(90deg,#74b77c,#d8bd78);transition:width .5s}.progress-caption{display:flex;justify-content:space-between;color:#929b90;font-size:10px}
+.log{max-height:100px;overflow:auto;font-size:11px;line-height:1.5;color:#aab3a8}.log div{padding:6px 0;border-bottom:1px solid #ffffff0d}
+#intro,#ending{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#090d0cf0,#090d0c88,#090d0cf0);padding:20px}
+#ending{display:none;z-index:4}.intro-card,.end-card{width:min(450px,100%);padding:28px;background:#101512f5;border:1px solid #a88c53;box-shadow:0 25px 90px #000c;text-align:center}
+.sig{font-size:10px;color:#9ca797;letter-spacing:3px;text-transform:uppercase}.intro-card h1{font:600 clamp(28px,4vw,42px)/1.15 Cinzel,serif;color:#e8d29a;margin:13px 0}.intro-card p,.end-card p{font-size:13px;line-height:1.7;color:#c0c7bc}.intro-card input{width:100%;padding:12px;background:#080d0b;border:1px solid #4d5a4b;color:#fff;margin:10px 0 3px}.intro-card .btn,.end-card .btn{width:100%;margin-top:10px;padding:13px}.foot{font-size:10px;color:#7f8a7e;letter-spacing:.8px;margin-top:13px}
+@media(max-width:950px){#app{grid-template-rows:auto 1fr}header{padding:13px;align-items:flex-start;flex-direction:column}.hud{width:100%;justify-content:space-between;gap:8px}#main{grid-template-columns:1fr;grid-template-rows:minmax(460px,62vh) auto}#sidebar{display:grid;grid-template-columns:1fr 1fr;border-left:0;border-top:1px solid var(--line)}.section:first-child{grid-row:span 2}#gameCanvas{min-height:460px}}
+@media(max-width:580px){#main{grid-template-rows:450px auto}#sidebar{display:flex}.brand{font-size:16px}.section{padding:14px}.hud div{font-size:9px}.hud b{font-size:11px}.scene-label{left:10px;top:10px}.world-bottom{left:10px;bottom:10px}}
+
+
+#ending{overflow-y:auto;align-items:flex-start}.end-card{margin:auto}.end-card.wide{width:min(1100px,100%)}
+#leaderboardBtn{display:block;width:100%;margin-top:18px;padding:13px;border:1px solid #c6a761;background:linear-gradient(#80663a,#4d3d24);color:#fff0c6;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;text-align:center;transition:.2s}
+#leaderboardBtn:hover{filter:brightness(1.2);transform:translateY(-1px)}
+#review{display:none;margin-top:18px;text-align:left}.rv-head{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9ca797;text-align:center;margin-bottom:12px}
+.rv-grid{display:grid;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));gap:14px}
+.rv-card{background:#0c110f;border:1px solid #4a5448;padding:14px;display:flex;flex-direction:column;gap:10px}
+.rv-turn{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#a88c53}.rv-q{font-size:13px;line-height:1.55;color:#e6e0d0}
+.rv-diagram svg{display:block;width:100%;height:auto;max-width:220px;margin:auto}
+.rv-row,.rv-why{padding:9px 11px;border-left:3px solid #4a5448;background:#ffffff08;font-size:12.5px;line-height:1.55;color:#c0c7bc}
+.rv-row.bad{border-color:#d0675f}.rv-row.good{border-color:#6fd07f}.rv-why{border-color:#a88c53;margin-top:auto}
+.rv-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;color:#9ca797}.rv-row.bad .rv-label{color:#e58f88}.rv-row.good .rv-label{color:#8fe09d}
+.rv-ans{margin-top:2px}.rv-ans b{color:#e8d29a}
+@media(max-width:800px){.rv-grid{grid-template-columns:1fr}}
+.intro-card,.end-card{animation:rise .8s cubic-bezier(.2,.8,.2,1) both}@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.97)}}
+.answer{animation:slideIn .4s both}.answer:nth-child(2){animation-delay:.06s}.answer:nth-child(3){animation-delay:.12s}.answer:nth-child(4){animation-delay:.18s}@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}}
+.answer.good{animation:goodPulse .7s}@keyframes goodPulse{50%{box-shadow:0 0 22px #6fd07f66}}
+.answer.bad{animation:shakeX .45s}@keyframes shakeX{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.rune.open{animation:pop .6s}@keyframes pop{40%{transform:scale(1.35)}}
+.btn{transition:.2s}.btn:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-1px)}
+.log div{animation:slideIn .4s both}.portrait{animation:glow 3s infinite}@keyframes glow{50%{box-shadow:0 0 16px #d9bc7a55}}
+.progress span{box-shadow:0 0 10px #74b77c88}
+#qDiagram:empty{display:none}#qDiagram{margin:0 0 13px;padding:8px;background:#0c110f;border:1px solid #4a5448}#qDiagram svg{display:block;width:100%;height:auto;max-width:300px;margin:auto}
+</style>
+</head>
+<body>
+<audio id="backgroundMusic" loop preload="auto">
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+<div id="app">
+<header><div class="brand">THE THREE CROSSINGS<small>2D DARK FANTASY · TACTICAL MATH RPG</small></div><div class="hud"><div>Adventurer<b id="hudName">Wanderer</b></div><div>Daily trial<b id="hudTurn">01 / 03</b></div><div>Spans joined<b id="hudBridges">00 / 03</b></div><div>Today<b id="hudDate">—</b></div></div></header>
+<main id="main">
+<section id="world">
+<canvas id="gameCanvas" aria-label="Side-view dark fantasy bridge adventure"></canvas>
+<div class="scene-label"><b>THE SUNKEN ROAD</b><span>Act I · The Whispering Ford</span></div><div class="toast" id="toast">Bridge connected</div>
+<div class="world-bottom"><div class="portrait">✦</div><div class="party-label"><b id="partyName">THE WANDERERS</b><span>Solo adventurer</span></div></div>
+<div id="intro"><div class="intro-card"><div class="sig">A journey through the gloom</div><h1>The Three<br>Crossings</h1><p>A ruined road runs east, broken by three dark river channels. Each channel has a raised, hinged drawbridge. Solve a daily math trial to lower the next bridge, then cross it and move on to the following one, from left to right.</p><input id="nameInput" maxlength="100" placeholder="Student name"><input id="classInput" maxlength="30" placeholder="Class"><input id="phoneInput" type="tel" maxlength="30" placeholder="Phone number"><button class="btn" id="startBtn">Begin expedition</button><div class="foot">3 DAILY TRIALS · 3 HINGED DRAWBRIDGES · ONE ADVENTURER</div></div></div>
+<div id="ending"><div class="end-card"><div class="sig">Expedition report</div><h2 id="endTitle">The Road Remembers</h2><p id="endText"></p><div id="review"></div><a id="leaderboardBtn" href="ranking.html">View Leaderboard</a></div></div>
+</section>
+<aside id="sidebar">
+<section class="section"><div class="eyebrow" id="turnLabel">Turn 01 · Span I</div><h2 id="questionTitle">A trial in the dark</h2><p id="question">Begin the expedition to receive today's first challenge.</p><div id="qDiagram"></div><div class="answers" id="answers"></div><div class="actions"><button class="btn" id="lockBtn" disabled>Lock answer</button></div><div class="feedback" id="feedback">One answer per turn. Correct answers lower the next drawbridge.</div></section>
+<section class="section"><div class="eyebrow">Expedition journal</div><h2>Broken spans</h2>
+<div class="quest-row"><div class="rune" id="rune0">I</div><div><b>The Rootbound Span</b><small id="quest0">Drawbridge raised</small></div><div class="status" id="status0">Broken</div></div>
+<div class="quest-row"><div class="rune" id="rune1">II</div><div><b>The King's Causeway</b><small id="quest1">Drawbridge raised</small></div><div class="status" id="status1">Broken</div></div>
+<div class="quest-row"><div class="rune" id="rune2">III</div><div><b>The Moonveil Span</b><small id="quest2">Drawbridge raised</small></div><div class="status" id="status2">Broken</div></div>
+<div class="progress"><span id="progressFill"></span></div><div class="progress-caption"><span id="progressText">0 of 3 spans connected</span><span>DAILY QUEST</span></div></section>
+<section class="section"><div class="eyebrow">Field notes</div><h2>Adventure log</h2><div class="log" id="log"><div>The adventurer waits at the edge of the broken road.</div></div></section>
+</aside>
+</main>
+</div>
+<script>
+(()=> {
+const $=id=>document.getElementById(id);
+const dateKey=new Date().toLocaleDateString('en-CA');
+$('hudDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}).toUpperCase();
+ const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbypo-5ThjzEFYh1t-dlCp94v01kU1wpxnu1WCNKLDgxfA3KXuN8Nh7c_XdiBqhTAfyxGA/exec';
+ let studentPhone='',studentClass='';
+const bank=[
+{diagram:'<svg viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Parallelogram ABCD with height DH drawn from D to base AB"><polygon points="40,150 230,150 290,40 100,40" fill="#1c2a21" stroke="#d9bc7a" stroke-width="2"/><line x1="100" y1="40" x2="100" y2="150" stroke="#a3e8ae" stroke-width="2" stroke-dasharray="6 4"/><polyline points="100,138 112,138 112,150" fill="none" stroke="#a3e8ae" stroke-width="1.5"/><g font-family="Inter,Arial,sans-serif" font-size="15" font-weight="600" fill="#e6e0d0"><text x="24" y="166">A</text><text x="228" y="168">B</text><text x="294" y="38">C</text><text x="84" y="32">D</text><text x="96" y="168" fill="#a3e8ae">H</text></g></svg>',q:'In parallelogram ABCD, AB is the base. The height DH is drawn from vertex D to meet AB at H, so DH is perpendicular to AB. Select ALL pairs that must be perpendicular.',a:['DH ⟂ AB','DH ⟂ DC','AD ⟂ AB','DH ⟂ AD','DH ⟂ BC'],c:[0,1],why:'DH ⟂ AB by the definition of height. Since AB ∥ DC, a line perpendicular to AB is also perpendicular to DC, so DH ⟂ DC.'},
+{q:'Two angles are complementary. One of the angles is 20°. What is the other angle?',a:['20°','70°','90°','110°','160°'],c:1,why:'Complementary angles add up to 90°, so the other angle is 90° − 20° = 70°.'},
+{diagram:'<svg viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A triangle with its three angles labelled 1, 2 and 3. Angle 2 is at the top and is wider than a right angle."><polygon points="40,150 280,150 100,80" fill="#1c2a21" stroke="#d9bc7a" stroke-width="2" stroke-linejoin="round"/><g fill="none" stroke="#a3e8ae" stroke-width="1.5"><path d="M68 150 A28 28 0 0 0 58.2 128.7"/><path d="M85.7 96.7 A22 22 0 0 0 120.5 88"/><path d="M246 150 A34 34 0 0 1 248.2 137.7"/></g><g font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#e6e0d0" text-anchor="middle"><text x="84" y="144">1</text><text x="100" y="125">2</text><text x="222" y="145">3</text></g></svg>',q:'The three angles inside this triangle are named 1, 2 and 3. Is angle 2 acute, obtuse or reflex?',a:['Acute (less than 90°)','Obtuse (between 90° and 180°)','Reflex (more than 180°)','Right (exactly 90°)'],c:1,why:'Angle 2 is wider than a right angle (90°) but smaller than a straight line (180°), so it is obtuse. A reflex angle is more than 180°, which can never happen inside a triangle because its three angles add up to 180°.'},
+{q:'The party has 18 torches and uses 6. How many remain?',a:['12','13','14','24'],c:0,why:'18 − 6 = 12.'},
+{q:'Three supply bags each contain 4 apples. How many apples altogether?',a:['7','10','12','16'],c:2,why:'3 × 4 = 12.'},
+{q:'A guard has 15 arrows and receives 4 more. How many arrows now?',a:['11','19','20','60'],c:1,why:'15 + 4 = 19.'},
+{q:'There are 20 berries. The party eats 8. How many remain?',a:['12','13','18','28'],c:0,why:'20 − 8 = 12.'},
+{q:'Four adventurers each carry 3 potions. How many potions in total?',a:['7','9','12','15'],c:2,why:'4 × 3 = 12.'},
+{q:'24 map marks are shared equally across 4 pages. How many per page?',a:['4','5','6','8'],c:2,why:'24 ÷ 4 = 6.'},
+{q:'A merchant sells 9 gems and then 7 more. How many were sold?',a:['14','15','16','17'],c:2,why:'9 + 7 = 16.'},
+{q:'A rope is 17 metres long. The party uses 9 metres. How much remains?',a:['6 m','7 m','8 m','9 m'],c:2,why:'17 − 9 = 8 metres.'},
+{q:'Five crates contain 2 healing herbs each. How many herbs?',a:['7','10','12','15'],c:1,why:'5 × 2 = 10.'},
+{q:'A ranger walks 3 km, then another 6 km. Total distance?',a:['8 km','9 km','10 km','18 km'],c:1,why:'3 + 6 = 9 km.'},
+{q:'16 rations are shared equally by 2 scouts. How many each?',a:['6','7','8','9'],c:2,why:'16 ÷ 2 = 8.'}
+];
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function getDaily(){let seed=hash(dateKey),idx=bank.map((_,i)=>i).filter(i=>i>1);for(let i=idx.length-1;i>0;i--){seed=(Math.imul(seed,1664525)+1013904223)>>>0;let j=seed%(i+1);[idx[i],idx[j]]=[idx[j],idx[i]]}return [bank[0],bank[1],bank[2]]}
+const questions=getDaily(),roman=['I','II','III'],spanNames=['The Rootbound Span',"The King's Causeway",'The Moonveil Span'];
+let turn=0,selected=[],locked=false,started=false,finished=false,heroName='Wanderer',opened=[false,false,false],outcomes=[null,null,null],picked=[[],[],[]],state='idle';
+const canvas=$('gameCanvas'),ctx=canvas.getContext('2d');
+// Level layout: one road running left to right. Three short drawbridges, each over its own river channel,
+// separated by small stone islands.  Bank | bridge I | island | bridge II | island | bridge III | bank
+const ROAD_Y=340,BRIDGE_W=220,BRIDGE_H=34;
+const bridgeDefs=[{x:180,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H},{x:490,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H},{x:800,y:ROAD_Y,w:BRIDGE_W,h:BRIDGE_H}];
+const HERO_START_X=110,HERO_Y=ROAD_Y+18,FINAL_X=1105;
+let W=1200,H=680,dpr=1,last=0,time=0,cameraX=0,shake=0,particles=[],bridgeAnim=[0,0,0],partyX=HERO_START_X,partyTargetX=HERO_START_X,partyY=HERO_Y,partyTargetY=HERO_Y,walkPhase=0,pendingNext=false;
+function resize(){const r=$('world').getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.floor(r.width*dpr);canvas.height=Math.floor(r.height*dpr);canvas.style.height=r.height+'px';draw()}
+window.addEventListener('resize',resize);
+function rnd(a,b){return a+Math.random()*(b-a)}
+function roundRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function polygon(points,fill,stroke){ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function gradient(x1,y1,x2,y2,stops){let g=ctx.createLinearGradient(x1,y1,x2,y2);stops.forEach(s=>g.addColorStop(s[0],s[1]));return g}
+let PAT={},FF=[],landed=[false,false,false],bridgeVel=[0,0,0],stepSide=false,dtG=.016,VY0=-200,VY1=900;
+const TEX={};
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function wrapDraw(w,h,x,y,f){for(const dx of[-w,0,w])for(const dy of[-h,0,h])f(x+dx,y+dy)}
+function mkTex(w,h,seed,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),mulberry(seed),w,h);return c}
+function buildTextures(){
+ TEX.grass=mkTex(256,256,11,(g,r,w,h)=>{
+  g.fillStyle='#233020';g.fillRect(0,0,w,h);
+  for(let i=0;i<46;i++){const x=r()*w,y=r()*h,rad=24+r()*46,l=r()>.5;wrapDraw(w,h,x,y,(X,Y)=>{const gr=g.createRadialGradient(X,Y,0,X,Y,rad);gr.addColorStop(0,l?'rgba(80,100,52,.30)':'rgba(8,16,10,.38)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(X-rad,Y-rad,rad*2,rad*2)})}
+  const pal=['#3b5230','#2c4026','#4a6339','#1d2c1b','#566f42'];
+  for(let i=0;i<1300;i++){const x=r()*w,y=r()*h,L=4+r()*8,a=-1.57+(r()-.5)*.9;g.strokeStyle=pal[i%5];g.lineWidth=1+r()*.8;g.globalAlpha=.5+r()*.4;wrapDraw(w,h,x,y,(X,Y)=>{g.beginPath();g.moveTo(X,Y);g.quadraticCurveTo(X+Math.cos(a)*L*.5+2,Y+Math.sin(a)*L*.5,X+Math.cos(a)*L,Y+Math.sin(a)*L);g.stroke()})}
+  g.globalAlpha=.5;for(let i=0;i<40;i++){g.fillStyle=['#6f7d4b','#8a7a52','#4d5d6a'][i%3];g.fillRect(r()*w,r()*h,2,2)}
+ });
+ TEX.cobble=mkTex(128,128,23,(g,r,w,h)=>{
+  g.fillStyle='#1f211c';g.fillRect(0,0,w,h);const rows=4,rh=h/rows;
+  for(let k=0;k<rows;k++){let cx=0;const y=k*rh;while(cx<w){const ww=Math.min(26+r()*20,w-cx),ww2=w-cx-ww<14?w-cx:ww;
+   g.beginPath();g.roundRect(cx+1.5,y+1.5,ww2-3,rh-3,6);g.fillStyle=`hsl(${44+r()*16},${6+r()*9}%,${36+r()*16}%)`;g.fill();
+   const gr=g.createLinearGradient(cx,y,cx+ww2,y+rh);gr.addColorStop(0,'rgba(255,255,235,.18)');gr.addColorStop(1,'rgba(0,0,0,.32)');g.fillStyle=gr;g.fill();
+   for(let s=0;s<14;s++){g.fillStyle=r()>.5?'rgba(0,0,0,.18)':'rgba(255,255,255,.1)';g.fillRect(cx+3+r()*(ww2-6),y+3+r()*(rh-6),1.5,1.5)}
+   if(r()<.25){const mx=cx+r()*ww2,gr2=g.createRadialGradient(mx,y+rh-3,0,mx,y+rh-3,12);gr2.addColorStop(0,'rgba(80,120,56,.55)');gr2.addColorStop(1,'rgba(80,120,56,0)');g.fillStyle=gr2;g.fillRect(mx-12,y+rh-15,24,15)}
+   cx+=ww2}}
+ });
+ TEX.wood=mkTex(128,128,31,(g,r,w,h)=>{
+  const gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'#6b4a2e');gr.addColorStop(.5,'#7b5636');gr.addColorStop(1,'#5f4129');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  for(let i=0;i<80;i++){const x=r()*w,a=1+r()*2,ph=r()*6,f=1+(r()*2|0);g.strokeStyle=r()>.4?'rgba(28,16,8,.32)':'rgba(205,150,95,.18)';g.lineWidth=.6+r()*1.2;g.beginPath();for(let y=0;y<=h;y+=8){const px=x+Math.sin(y/h*6.283*f+ph)*a;y?g.lineTo(px,y):g.moveTo(px,y)}g.stroke()}
+  for(let i=0;i<3;i++){const x=r()*w,y=r()*h;g.fillStyle='rgba(30,16,8,.45)';g.beginPath();g.ellipse(x,y,3,5,0,0,6.283);g.fill();g.strokeStyle='rgba(30,16,8,.25)';g.beginPath();g.ellipse(x,y,6,10,0,0,6.283);g.stroke()}
+ });
+ TEX.wall=mkTex(64,64,41,(g,r,w,h)=>{
+  g.fillStyle='#262922';g.fillRect(0,0,w,h);
+  for(let k=0;k<4;k++){let cx=(k%2)*-8;const y=k*16;while(cx<w){const ww=22+r()*10;g.fillStyle=`hsl(${50+r()*10},7%,${30+r()*14}%)`;g.fillRect(cx+1,y+1,ww-2,14);g.fillStyle='rgba(255,255,240,.12)';g.fillRect(cx+1,y+1,ww-2,2);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(cx+1,y+12,ww-2,3);cx+=ww}}
+ });
+ const water=(seed,base,st)=>mkTex(256,256,seed,(g,r,w,h)=>{
+  if(base){g.fillStyle=base;g.fillRect(0,0,w,h)}
+  for(let i=0;i<90;i++){const x=r()*w,y=r()*h,L=30+r()*70,amp=3+r()*5,ph=r()*6;g.strokeStyle=st[i%st.length];g.lineWidth=1+r()*2.2;
+   wrapDraw(w,h,x,y,(X,Y)=>{g.beginPath();for(let t=0;t<=1.001;t+=.1){const px=X+Math.sin(t*6.283+ph)*amp,py=Y+t*L;t?g.lineTo(px,py):g.moveTo(px,py)}g.stroke()})}
+ });
+ TEX.waterA=water(5,'#12343c',['rgba(120,170,170,.10)','rgba(4,16,22,.28)','rgba(70,120,125,.13)']);
+ TEX.waterB=water(9,null,['rgba(180,220,210,.20)','rgba(140,190,190,.12)']);
+ for(const k in TEX)PAT[k]=ctx.createPattern(TEX[k],'repeat');
+ const r=mulberry(77);for(let i=0;i<38;i++)FF.push({x:-100+r()*1400,y:ROAD_Y-260+r()*520,ph:r()*6.3,sp:.3+r()*.7,rad:20+r()*40});
+}
+function spawn(o){particles.push(Object.assign({g:0,drag:1,alpha:1,add:false,shrink:true},o))}
+function burst(x,y){for(let i=0;i<70;i++){const a=Math.random()*6.283,s=rnd(.7,3.6);spawn({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1.2,g:.035,drag:.985,life:rnd(26,60),maxLife:60,r:rnd(1,3.4),color:['#b5f5ae','#e5d69c','#88cfc4'][i%3],add:true})}}
+function dust(x,y,n){for(let i=0;i<n;i++)spawn({x:x+rnd(-8,8),y:y+rnd(-2,2),vx:rnd(-.8,.8),vy:rnd(-.7,-.1),g:-.005,drag:.97,life:rnd(26,50),maxLife:50,r:rnd(2,5),color:'#8f8c76',alpha:.45})}
+function splash(x,y,n){for(let i=0;i<n;i++)spawn({x:x+rnd(-14,14),y,vx:rnd(-1.4,1.4),vy:rnd(-5,-2),g:.2,drag:.99,life:rnd(24,42),maxLife:42,r:rnd(1.4,3),color:'#b4e0dc',alpha:.8})}
+function drawTree(x,y,s){const sw=Math.sin(time*1.1+x*.013)*2.6*s;ctx.fillStyle='rgba(5,8,7,.6)';ctx.beginPath();ctx.ellipse(x+8,y+7,29*s,10*s,0,0,6.283);ctx.fill();ctx.fillStyle=gradient(x-5*s,0,x+5*s,0,[[0,'#24190f'],[.5,'#40311f'],[1,'#1e150d']]);ctx.fillRect(x-5*s,y-22*s,10*s,34*s);
+ for(let i=0;i<3;i++){const k=sw*(i+1)*.5,cx=['#16241d','#213524','#2d4430'][i],top=y-65*s+i*17*s;polygon([[x+k*1.2,top],[x-29*s+i*4*s+k*.4,y-16*s+i*17*s],[x+30*s-i*4*s+k*.4,y-16*s+i*17*s]],cx);
+  ctx.fillStyle='rgba(150,190,130,.10)';ctx.beginPath();ctx.moveTo(x+k*1.2,top);ctx.lineTo(x-29*s+i*4*s+k*.4,y-16*s+i*17*s);ctx.lineTo(x-4*s,y-16*s+i*17*s);ctx.fill()}}
+function drawRubble(x,y,s){ctx.fillStyle='rgba(8,11,10,.65)';ctx.fillRect(x+3,y+4,30*s,17*s);polygon([[x,y],[x+10*s,y-10*s],[x+30*s,y-4*s],[x+33*s,y+12*s],[x+2*s,y+14*s]],gradient(x,y-10*s,x+33*s,y+14*s,[[0,'#7a7864'],[1,'#44443a']]),'#2c2e27');ctx.strokeStyle='#35382f';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+9*s,y);ctx.lineTo(x+14*s,y+8*s);ctx.stroke()}
+function drawBackground(){
+ const Y0=-900,Y1=H+900,X0=-1400,X1=W+1400,span=Y1-Y0,by=ROAD_Y,bh=BRIDGE_H;
+ const land=[[X0,bridgeDefs[0].x],[bridgeDefs[0].x+BRIDGE_W,bridgeDefs[1].x],[bridgeDefs[1].x+BRIDGE_W,bridgeDefs[2].x],[bridgeDefs[2].x+BRIDGE_W,X1]];
+ ctx.fillStyle='#0b100e';ctx.fillRect(X0,Y0,X1-X0,span);
+ const sh=(x,d)=>{const g=ctx.createLinearGradient(x,0,x+d*46,0);g.addColorStop(0,'rgba(2,6,5,.6)');g.addColorStop(1,'rgba(2,6,5,0)');ctx.fillStyle=g;ctx.fillRect(Math.min(x,x+d*46),Y0,46,span)};
+ for(const [a,c] of land){ctx.fillStyle=PAT.grass;ctx.fillRect(a,Y0,c-a,span);if(a>X0)sh(a,1);if(c<X1)sh(c,-1)}
+ for(let i=0;i<46;i++){const y=-300+(i*71)%1300;if(Math.abs(y-by)<90||y<VY0-90||y>VY1+90)continue;drawTree(-260+(i*37)%400,y,.6+(i%4)*.13);drawTree(1060+(i*43)%420,y+25,.6+(i%4)*.13)}
+ for(const [a,c] of land){
+  ctx.fillStyle='rgba(2,5,4,.5)';ctx.fillRect(a,by+bh+6,c-a,8);
+  ctx.fillStyle=PAT.cobble;ctx.fillRect(a,by-6,c-a,bh+12);
+  const g=ctx.createLinearGradient(0,by-6,0,by+bh+6);g.addColorStop(0,'rgba(255,245,210,.14)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.35)');ctx.fillStyle=g;ctx.fillRect(a,by-6,c-a,bh+12);
+  ctx.fillStyle='#262a23';ctx.fillRect(a,by-8,c-a,2);ctx.fillRect(a,by+bh+6,c-a,2)}
+ bridgeDefs.forEach((b,ci)=>{
+  const x0=b.x,w=b.w;
+  PAT.waterA.setTransform(new DOMMatrix().translate(ci*37,time*26));ctx.fillStyle=PAT.waterA;ctx.fillRect(x0,Y0,w,span);
+  ctx.globalCompositeOperation='lighter';
+  PAT.waterB.setTransform(new DOMMatrix().translate(ci*91+Math.sin(time*.6)*7,time*52));ctx.fillStyle=PAT.waterB;ctx.globalAlpha=.55;ctx.fillRect(x0,Y0,w,span);
+  PAT.waterB.setTransform(new DOMMatrix().translate(ci*13-Math.sin(time*.5)*9,-time*18+60).scale(1.6,1.6));ctx.globalAlpha=.3;ctx.fillRect(x0,Y0,w,span);
+  ctx.globalAlpha=1;
+  for(let i=0;i<22;i++){const yy=VY0+((i*97+time*38)%(VY1-VY0)),xx=x0+14+(i*53+ci*29)%(w-28)+Math.sin(time+i)*4,a=Math.max(0,Math.sin(time*3+i*1.7))*.7;ctx.fillStyle=`rgba(210,240,230,${a})`;ctx.fillRect(xx,yy,2.5,1.5)}
+  ctx.globalCompositeOperation='source-over';
+  const dg=ctx.createLinearGradient(x0,0,x0+w,0);dg.addColorStop(0,'rgba(0,10,12,.6)');dg.addColorStop(.2,'rgba(0,10,12,0)');dg.addColorStop(.8,'rgba(0,10,12,0)');dg.addColorStop(1,'rgba(0,10,12,.6)');ctx.fillStyle=dg;ctx.fillRect(x0,Y0,w,span);
+  for(const ex of[x0-9,x0+w]){ctx.fillStyle=PAT.wall;ctx.fillRect(ex,Y0,9,span);ctx.fillStyle='rgba(255,255,240,.12)';ctx.fillRect(ex,Y0,2,span)}
+  const off=(time*30)%14;
+  for(let y=VY0-14;y<VY1;y+=14){const yy=y+off;for(const [fx,d] of[[x0,1],[x0+w,-1]]){const wob=Math.sin(yy*.07+time*2+fx)*2.5;ctx.fillStyle=`rgba(210,235,228,${.16+.14*Math.sin(yy*.13+time*3)})`;ctx.beginPath();ctx.ellipse(fx+d*(3+wob),yy,4+Math.sin(yy*.2)*1.5,2.2,0,0,6.283);ctx.fill()}}
+  for(let i=0;i<14;i++){const y=(i*83)%H-40;if(Math.abs(y-by)<60)continue;drawRubble(x0-34-(i%2)*6,y,.55+(i%4)*.12);drawRubble(x0+w+12+(i%2)*6,y+20,.5+(i%3)*.12)}
+ });
+}
+function drawLantern(x,y,seed){
+ const f=.8+.2*Math.sin(time*9+seed*3)+.08*Math.sin(time*23+seed);
+ ctx.fillStyle='#1a1812';ctx.fillRect(x-1.5,y-12,3,12);ctx.fillStyle='#3a3a30';ctx.fillRect(x-5,y-22,10,3);ctx.fillRect(x-5,y-8,10,3);
+ ctx.fillStyle=`rgba(255,${180+f*30|0},90,.95)`;ctx.fillRect(x-3.5,y-19,7,11);
+ ctx.globalCompositeOperation='lighter';const R=78*f,g=ctx.createRadialGradient(x,y-14,0,x,y-14,R);g.addColorStop(0,'rgba(255,190,100,.38)');g.addColorStop(1,'rgba(255,150,60,0)');ctx.fillStyle=g;ctx.fillRect(x-R,y-14-R,R*2,R*2);ctx.globalCompositeOperation='source-over'}
+function drawBridge(i){
+ const b=bridgeDefs[i],p=bridgeAnim[i],open=opened[i],y=b.y,left=b.x,right=b.x+b.w,mid=(left+right)/2,half=b.w/2,cy=y+b.h/2;
+ const sa=Math.max(0,Math.min(1,p)),sg=ctx.createLinearGradient(0,y+b.h,0,y+b.h+22);sg.addColorStop(0,`rgba(0,6,8,${.55*sa})`);sg.addColorStop(1,'rgba(0,6,8,0)');ctx.fillStyle=sg;ctx.fillRect(left,y+b.h,b.w,22);
+ for(const px of[left-8,right-8]){
+  ctx.fillStyle='rgba(5,9,8,.6)';ctx.fillRect(px-5,y+8,25,b.h+16);
+  ctx.fillStyle=PAT.wall;ctx.fillRect(px,y-8,16,b.h+19);ctx.strokeStyle='#1d201a';ctx.lineWidth=1;ctx.strokeRect(px,y-8,16,b.h+19);
+  ctx.fillStyle='#b08b52';ctx.beginPath();ctx.arc(px+8,cy,5,0,6.283);ctx.fill();ctx.fillStyle='rgba(255,230,160,.5)';ctx.beginPath();ctx.arc(px+6.5,cy-1.5,1.8,0,6.283);ctx.fill()}
+ function leaf(pivotX){
+  const ang=Math.max(0,1-p)*.85,len=half,n=8,pw=len/n,h2=b.h/2;
+  ctx.save();ctx.translate(pivotX,cy);ctx.rotate(-ang);
+  ctx.fillStyle='rgba(0,5,6,.5)';ctx.fillRect(0,h2,len,9);
+  ctx.fillStyle=PAT.wood;ctx.fillRect(0,-h2,len,b.h);
+  const g=ctx.createLinearGradient(0,-h2,0,h2);g.addColorStop(0,'rgba(255,220,160,.22)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.4)');ctx.fillStyle=g;ctx.fillRect(0,-h2,len,b.h);
+  ctx.lineWidth=1.6;ctx.strokeStyle='rgba(15,9,5,.8)';ctx.beginPath();for(let k=1;k<n;k++){ctx.moveTo(k*pw,-h2);ctx.lineTo(k*pw,h2)}ctx.stroke();
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(255,215,150,.16)';ctx.beginPath();for(let k=1;k<n;k++){ctx.moveTo(k*pw+1.6,-h2);ctx.lineTo(k*pw+1.6,h2)}ctx.stroke();
+  ctx.fillStyle='#2a2b27';for(const k of[1,4,7]){ctx.fillRect(k*pw-3,-h2,6,b.h);ctx.fillStyle='#a9936a';ctx.fillRect(k*pw-1,-h2+4,2,2);ctx.fillRect(k*pw-1,h2-6,2,2);ctx.fillStyle='#2a2b27'}
+  ctx.fillStyle='#45483d';ctx.fillRect(0,-h2-3,len,4);ctx.fillRect(0,h2,len,4);ctx.fillStyle='rgba(255,255,230,.15)';ctx.fillRect(0,-h2-3,len,1);
+  ctx.restore()}
+ leaf(left);ctx.save();ctx.translate(right,0);ctx.scale(-1,1);ctx.translate(-right,0);leaf(right);ctx.restore();
+ drawLantern(left+8,y-8,i);drawLantern(right,y-8,i+5);
+ if(open){const a=.55+.3*Math.sin(time*4);ctx.fillStyle='#a8dba1';ctx.globalAlpha=a;ctx.fillRect(mid-7,y-4,14,4);ctx.globalAlpha=1}
+ else{ctx.strokeStyle='#987343';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mid-8,cy-8);ctx.lineTo(mid+8,cy+8);ctx.moveTo(mid+8,cy-8);ctx.lineTo(mid-8,cy+8);ctx.stroke()}
+ roundRect(left+8,y-31,36,23,4,'#101613','#a28a56');ctx.fillStyle=open?'#b5f1b0':'#d6c58f';ctx.font='bold 12px Cinzel';ctx.textAlign='center';ctx.fillText(roman[i],left+26,y-15);
+ if(open){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.08+.05*Math.sin(time*4);ctx.fillStyle='#a0e5a5';ctx.fillRect(left,y-2,b.w,b.h+5);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+}
+function drawCharacter(x,y,idx,walking){
+ const t=walking?walkPhase:time*2,s=Math.sin(t),c=Math.cos(t),bob=walking?Math.abs(s)*3.5:Math.sin(time*2)*1.1;
+ ctx.fillStyle='rgba(2,4,3,.55)';ctx.beginPath();ctx.ellipse(x,y+4,16-bob,5,0,0,6.283);ctx.fill();
+ ctx.save();ctx.translate(x,y);ctx.rotate(walking?.07:0);ctx.lineCap='round';ctx.lineJoin='round';
+ const l1=walking?s*7:0,l2=-l1,u1=walking?Math.max(0,c)*3:0,u2=walking?Math.max(0,-c)*3:0;
+ ctx.lineWidth=6;ctx.strokeStyle='#241f1a';ctx.beginPath();ctx.moveTo(-3,-12-bob);ctx.lineTo(-3+l2,2-u2);ctx.moveTo(4,-12-bob);ctx.lineTo(4+l1,2-u1);ctx.stroke();
+ ctx.fillStyle='#3a2a1c';ctx.fillRect(-6+l2,-1-u2,8,4);ctx.fillRect(1+l1,-1-u1,8,4);
+ const fl=walking?10+Math.sin(time*9)*4:3+Math.sin(time*2.3)*1.5;
+ ctx.fillStyle=gradient(-20,-38,0,-6,[[0,'#8a3733'],[1,'#4e1d1d']]);ctx.beginPath();ctx.moveTo(-5,-38-bob);ctx.quadraticCurveTo(-14-fl,-26-bob,-12-fl*1.4,-6-bob+Math.sin(time*7)*2);ctx.lineTo(-2,-10-bob);ctx.closePath();ctx.fill();ctx.strokeStyle='#2c0f0f';ctx.lineWidth=1;ctx.stroke();
+ ctx.strokeStyle='#bbc0a7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-1,-34-bob);ctx.lineTo(9,-48-bob);ctx.stroke();ctx.strokeStyle='#8c7548';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-1,-34-bob);ctx.lineTo(1,-37-bob);ctx.stroke();
+ polygon([[0,-40-bob],[-12,-18-bob],[-9,-3-bob],[10,-3-bob],[13,-18-bob]],gradient(-12,-40,12,-3,[[0,'#46606f'],[1,'#25343f']]),'#9c8859');
+ ctx.fillStyle='#4b3024';ctx.fillRect(-10,-17-bob,21,3);ctx.fillStyle='#c9a85f';ctx.fillRect(-1.5,-17.5-bob,4,4);
+ ctx.strokeStyle='#2c3f4c';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(8,-33-bob);ctx.lineTo(12+(walking?-s*5:0),-21-bob);ctx.stroke();
+ ctx.fillStyle='#b68b68';ctx.beginPath();ctx.arc(1,-44-bob,7,0,6.283);ctx.fill();
+ ctx.fillStyle='#2a3b36';ctx.beginPath();ctx.arc(0,-46-bob,8.5,Math.PI*.95,Math.PI*2.1);ctx.lineTo(-7,-38-bob);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#1b1511';ctx.fillRect(4,-45-bob,1.8,2.2);ctx.fillStyle='rgba(170,110,60,.9)';ctx.fillRect(-5,-39-bob,12,2);
+ ctx.restore()}
+function drawParty(){drawCharacter(partyX,partyY,0,state==='walking')}
+function drawBridgeTitles(){ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;for(let i=0;i<3;i++){const b=bridgeDefs[i],mid=b.x+b.w/2,y=b.y-70+Math.sin(time*1.4+i)*1.5;ctx.fillStyle='#d9c58f';ctx.font='12px Cinzel';ctx.fillText(['ROOTBOUND SPAN',"KING'S CAUSEWAY",'MOONVEIL SPAN'][i],mid,y);ctx.fillStyle=opened[i]?'#9be4a0':'#a1a89b';ctx.font='10px Inter';ctx.fillText(opened[i]?'LOWERED · CONNECTED':'RAISED · GAP OPEN',mid,y+15)}ctx.shadowBlur=0}
+function drawFireflies(){ctx.globalCompositeOperation='lighter';for(const f of FF){const x=f.x+Math.sin(time*f.sp+f.ph)*f.rad,y=f.y+Math.cos(time*f.sp*1.3+f.ph)*f.rad*.6,a=.35+.65*Math.max(0,Math.sin(time*1.7*f.sp+f.ph*3));const g=ctx.createRadialGradient(x,y,0,x,y,9);g.addColorStop(0,`rgba(205,255,160,${a})`);g.addColorStop(1,'rgba(205,255,160,0)');ctx.fillStyle=g;ctx.fillRect(x-9,y-9,18,18)}ctx.globalCompositeOperation='source-over'}
+function drawParticles(){particles=particles.filter(p=>p.life>0);for(const p of particles){p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.vx*=p.drag;p.life--;const a=Math.max(0,p.life/p.maxLife);ctx.globalCompositeOperation=p.add?'lighter':'source-over';ctx.globalAlpha=a*p.alpha;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.1,p.r*(p.shrink?(p.add?a:1.3-a*.3):1)),0,6.283);ctx.fill()}ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+function draw(){
+ if(!ctx)return;const cw=canvas.width,ch=canvas.height;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#0a0d0c';ctx.fillRect(0,0,cw,ch);
+ const scale=Math.min(cw/W,ch/H),viewW=cw/scale,viewH=ch/scale;
+ const desired=Math.max(0,Math.min(W-viewW,partyX-viewW*.38));cameraX+=(desired-cameraX)*(1-Math.exp(-dtG*4.5));
+ const offY=viewH/2-(ROAD_Y+BRIDGE_H/2);VY0=-offY-40;VY1=VY0+viewH+80;
+ ctx.setTransform(scale,0,0,scale,-cameraX*scale,offY*scale);
+ ctx.save();if(shake>0){ctx.translate(rnd(-shake,shake),rnd(-shake,shake));shake*=.86;if(shake<.2)shake=0}
+ drawBackground();for(let i=0;i<3;i++)drawBridge(i);drawBridgeTitles();drawFireflies();drawParty();drawParticles();ctx.restore();
+ ctx.setTransform(1,0,0,1,0,0);
+ for(let k=0;k<3;k++){const x=((time*(9+k*6)+k*430)%(cw+900))-450,y=ch*(.22+.28*k),R=ch*.65,g=ctx.createRadialGradient(x,y,0,x,y,R);g.addColorStop(0,'rgba(150,178,172,.07)');g.addColorStop(1,'rgba(150,178,172,0)');ctx.fillStyle=g;ctx.fillRect(0,0,cw,ch)}
+ const v=ctx.createRadialGradient(cw/2,ch/2,Math.min(cw,ch)*.3,cw/2,ch/2,Math.max(cw,ch)*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(2,4,4,.7)');ctx.fillStyle=v;ctx.fillRect(0,0,cw,ch);
+}
+function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;dtG=dt;time+=dt;walkPhase+=dt*10;
+ for(let i=0;i<3;i++){bridgeVel[i]+=(((opened[i]?1:0)-bridgeAnim[i])*16-bridgeVel[i]*5.5)*dt;bridgeAnim[i]+=bridgeVel[i]*dt;if(opened[i]&&!landed[i]&&bridgeAnim[i]>=1){landed[i]=true;shake=7;const b=bridgeDefs[i];dust(b.x+b.w/2,b.y+8,18);splash(b.x+40,b.y+b.h+6,14);splash(b.x+b.w-40,b.y+b.h+6,14)}if(!opened[i])landed[i]=false}
+ if(state==='walking'){const st=Math.sin(walkPhase)>0;if(st!==stepSide){stepSide=st;dust(partyX-6,partyY+3,2)}partyX+=(partyTargetX-partyX)*Math.min(1,dt*1.5);partyY+=(partyTargetY-partyY)*Math.min(1,dt*1.5);if(Math.abs(partyTargetX-partyX)<3&&Math.abs(partyTargetY-partyY)<3){partyX=partyTargetX;partyY=partyTargetY;state='idle';if(pendingNext){pendingNext=false;advanceTurn()}}}
+ draw();requestAnimationFrame(frame)}
+function log(msg){const e=document.createElement('div');e.textContent=msg;$('log').prepend(e)}
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('show'),1800)}
+function updateUI(){
+ $('hudName').textContent=heroName;$('partyName').textContent=heroName.toUpperCase();$('hudTurn').textContent=finished?'DONE':`${String(turn+1).padStart(2,'0')} / 03`;$('hudBridges').textContent=`${String(opened.filter(Boolean).length).padStart(2,'0')} / 03`;
+ $('progressFill').style.width=(opened.filter(Boolean).length/3*100)+'%';$('progressText').textContent=`${opened.filter(Boolean).length} of 3 spans connected`;
+ for(let i=0;i<3;i++){$('rune'+i).classList.toggle('open',opened[i]);$('rune'+i).textContent=opened[i]?'✓':roman[i];$('quest'+i).textContent=opened[i]?'Drawbridge lowered · Adventurer crossed':outcomes[i]===false?'Trial failed · Gap remains':'Drawbridge raised';$('status'+i).textContent=opened[i]?'Joined':'Broken';$('status'+i).classList.toggle('open',opened[i])}
+}
+function renderQuestion(){
+  if(turn>=3){finish();return}selected=[];locked=false;
+  const q=questions[turn],multi=Array.isArray(q.c);
+  $('qDiagram').innerHTML=q.diagram||'';
+  $('turnLabel').textContent=`Turn ${String(turn+1).padStart(2,'0')} · Span ${roman[turn]}`;$('questionTitle').textContent=['The Rootbound Trial',"The King's Arithmetic",'The Moonveil Test'][turn];$('question').textContent=q.q;
+  const host=$('answers');host.innerHTML='';q.a.forEach((a,i)=>{const b=document.createElement('button');b.className='answer';b.innerHTML=`<span class="key">${String.fromCharCode(65+i)}</span><span>${a}</span>`;b.addEventListener('click',()=>{if(locked||!started||state==='walking')return;if(multi){selected=selected.includes(i)?selected.filter(v=>v!==i):[...selected,i]}else{selected=[i]}[...host.children].forEach((el,j)=>el.classList.toggle('chosen',selected.includes(j)));$('lockBtn').disabled=selected.length===0});host.appendChild(b)});
+  $('lockBtn').disabled=true;$('feedback').className='feedback';$('feedback').textContent=multi?'Select all correct options, then lock your answer.':'Choose one answer, then lock it. A wrong answer leaves this gap open.';updateUI()
+}
+function resolve(){
+ if(selected.length===0||locked||!started||finished||state==='walking')return;
+ if(!confirm('Lock in this answer? You cannot change it afterwards.'))return;
+ locked=true;$('lockBtn').disabled=true;const q=questions[turn],correctIndices=Array.isArray(q.c)?q.c:[q.c],correct=selected.length===correctIndices.length&&selected.every(i=>correctIndices.includes(i));outcomes[turn]=correct;picked[turn]=[...selected];
+ [...$('answers').children].forEach((el,i)=>{el.disabled=true;if(correctIndices.includes(i))el.classList.add('good');if(selected.includes(i)&&!correctIndices.includes(i))el.classList.add('bad')});
+ if(correct){
+  const bridgeIndex=opened.findIndex(v=>!v);
+  if(bridgeIndex<0){finish();return}
+  opened[bridgeIndex]=true;bridgeAnim[bridgeIndex]=0;bridgeVel[bridgeIndex]=0;landed[bridgeIndex]=false;state='bridge';$('feedback').className='feedback good';$('feedback').textContent=`Correct! ${q.why} Drawbridge ${bridgeIndex+1} lowers onto its fixed supports. Your adventurer crosses it.`;toast(`DRAWBRIDGE ${bridgeIndex+1} LOWERING`);log(`Turn ${turn+1}: Correct — ${spanNames[bridgeIndex]} is being joined.`);
+  // Every correct answer connects the next missing bridge in the row, left to right.
+  const b=bridgeDefs[bridgeIndex];burst(b.x+b.w/2,b.y+15);
+  setTimeout(()=>{state='walking';partyTargetX=bridgeIndex===2?FINAL_X:b.x+b.w+45;partyTargetY=HERO_Y;pendingNext=true;log(`The adventurer crosses ${spanNames[bridgeIndex]}.`)},1150);
+ }else{
+  $('feedback').className='feedback bad';$('feedback').textContent=`Incorrect. ${q.why} The bridge remains broken. The adventurer stays here; the next correct answer will connect the next missing bridge.`;toast('THE GAP REMAINS');log(`Turn ${turn+1}: Incorrect — the next span remains broken.`);shake=7;setTimeout(advanceTurn,1350)
+ }
+ updateUI()
+}
+function advanceTurn(){if(finished)return;turn++;if(turn<3)renderQuestion();else finish()}
+function submitResult(score,total){
+ const frameName='submissionFrame';
+ let frame=document.getElementById(frameName);
+ if(!frame){frame=document.createElement('iframe');frame.name=frameName;frame.id=frameName;frame.style.display='none';frame.setAttribute('aria-hidden','true');document.body.appendChild(frame)}
+ const form=document.createElement('form');form.method='POST';form.action=APPS_SCRIPT_URL;form.target=frameName;form.style.display='none';
+ const payload={name:heroName,class:studentClass,Class:studentClass,className:studentClass,studentClass:studentClass,phone:studentPhone,quiz:'The Three Crossings - Daily Math Trial',score:String(score),total:String(total),percentage:(total?(score/total)*100:0).toFixed(1)};
+ Object.entries(payload).forEach(([key,value])=>{const input=document.createElement('input');input.type='hidden';input.name=key;input.value=value;form.appendChild(input)});
+ document.body.appendChild(form);form.submit();form.remove();
+ log('Result submission sent to Google Sheets. Please verify the row in the spreadsheet.');
+}
+function renderReview(){
+ const host=$('review'),card=document.querySelector('.end-card');host.innerHTML='';
+ const wrong=[];outcomes.forEach((o,i)=>{if(o===false)wrong.push(i)});
+ card.classList.toggle('wide',wrong.length>0);
+ if(!wrong.length){host.style.display='none';return}
+ host.style.display='block';
+ const h=document.createElement('div');h.className='rv-head';h.textContent=`Review · ${wrong.length} to revisit`;host.appendChild(h);
+ const grid=document.createElement('div');grid.className='rv-grid';grid.style.setProperty('--cols',wrong.length);
+ wrong.forEach(i=>{
+  const q=questions[i],cor=Array.isArray(q.c)?q.c:[q.c],pk=picked[i]||[];
+  const txt=k=>q.a[k];
+  const box=document.createElement('div');box.className='rv-card';
+  const t=document.createElement('div');t.className='rv-turn';t.textContent=`Turn ${String(i+1).padStart(2,'0')} · Span ${roman[i]}`;box.appendChild(t);
+  const qq=document.createElement('div');qq.className='rv-q';qq.textContent=q.q;box.appendChild(qq);
+  if(q.diagram){const d=document.createElement('div');d.className='rv-diagram';d.innerHTML=q.diagram;box.appendChild(d)}
+  const row=(label,idxs,cls)=>{const w=document.createElement('div');w.className='rv-row '+cls;const l=document.createElement('div');l.className='rv-label';l.textContent=label;w.appendChild(l);
+   if(!idxs.length){const e=document.createElement('div');e.className='rv-ans';e.textContent='No answer';w.appendChild(e)}
+   idxs.forEach(k=>{const e=document.createElement('div');e.className='rv-ans';e.innerHTML=`<b>${String.fromCharCode(65+k)}.</b> ${txt(k)}`;w.appendChild(e)});box.appendChild(w)};
+  row('Your answer',pk,'bad');row('Correct answer',cor,'good');
+  const ex=document.createElement('div');ex.className='rv-why';const l=document.createElement('div');l.className='rv-label';l.textContent='Explanation';ex.appendChild(l);const pt=document.createElement('div');pt.textContent=q.why;ex.appendChild(pt);box.appendChild(ex);
+  grid.appendChild(box)});
+ host.appendChild(grid);
+}
+function finish(){finished=true;locked=true;state='idle';$('turnLabel').textContent='Expedition complete';$('questionTitle').textContent='The road remembers';$('question').textContent='All three daily trials have been resolved.';$('answers').innerHTML='';$('lockBtn').disabled=true;let n=opened.filter(Boolean).length;submitResult(n,3);$('feedback').className=n===3?'feedback good':'feedback';$('feedback').textContent=`${n} of 3 bridge sections connected. ${n===3?'Every gap is bridged; the party has reached the far road.':n===0?'The gaps remain. Return tomorrow for a new set of trials.':'Only correct answers joined their matching bridge sections.'}`;$('endTitle').textContent=n===3?'The road is yours':n===0?'The ford stands firm':'A journey remembered';$('endText').textContent=`${heroName}, you solved ${n} of today's three trials and connected ${n} bridge${n===1?'':' sections'}. Wrong answers never create a bridge. New questions rotate with the date.`;renderReview();$('ending').style.display='flex';log(`Expedition complete: ${n}/3 spans connected.`);updateUI()}
+function start(){heroName=$('nameInput').value.trim();studentClass=$('classInput').value.trim();studentPhone=$('phoneInput').value.trim();if(!heroName||!studentClass||!studentPhone){toast('ENTER NAME, CLASS AND PHONE');return}const music=$('backgroundMusic');music.volume=0.25;music.play().catch(()=>{});started=true;$('intro').style.display='none';log(`${heroName} approaches the riverbank.`);renderQuestion()}
+$('startBtn').addEventListener('click',start);$('lockBtn').addEventListener('click',resolve);
+buildTextures();resize();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
